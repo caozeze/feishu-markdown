@@ -194,6 +194,51 @@ describe('transformMarkdownToBlocks', () => {
     expect(codeElement).toBeDefined();
   });
 
+  it('should transform inline math into equation elements', async () => {
+    const ast = parseMarkdown('Energy is $E=mc^2$ today.');
+    const result = await transformMarkdownToBlocks(ast);
+
+    const textBlock = result.blocks.find(
+      (b) => b.block_type === BlockType.Text
+    );
+    expect(textBlock).toBeDefined();
+    expect(textBlock?.text?.elements).toHaveLength(3);
+    expect(textBlock?.text?.elements?.[0]?.text_run?.content).toBe(
+      'Energy is '
+    );
+    expect(textBlock?.text?.elements?.[1]?.equation?.content).toBe('E=mc^2');
+    expect(textBlock?.text?.elements?.[2]?.text_run?.content).toBe(' today.');
+  });
+
+  it('should transform block math into a standalone text block', async () => {
+    const ast = parseMarkdown('$$\n\\frac{a}{b}\n$$');
+    const result = await transformMarkdownToBlocks(ast);
+
+    expect(result.blocks).toHaveLength(1);
+    expect(result.blocks[0]?.block_type).toBe(BlockType.Text);
+    expect(result.blocks[0]?.text?.elements).toHaveLength(1);
+    expect(result.blocks[0]?.text?.elements?.[0]?.equation?.content).toBe(
+      '\\frac{a}{b}'
+    );
+  });
+
+  it('should preserve multiple inline equations in order', async () => {
+    const ast = parseMarkdown('$a$ plus $b$');
+    const result = await transformMarkdownToBlocks(ast);
+
+    const textBlock = result.blocks.find(
+      (b) => b.block_type === BlockType.Text
+    );
+    expect(textBlock?.text?.elements?.map((element) => ({
+      text: element.text_run?.content,
+      equation: element.equation?.content,
+    }))).toEqual([
+      { text: undefined, equation: 'a' },
+      { text: ' plus ', equation: undefined },
+      { text: undefined, equation: 'b' },
+    ]);
+  });
+
   it('should handle links', async () => {
     const ast = parseMarkdown('[Link](https://example.com)');
     const result = await transformMarkdownToBlocks(ast);
@@ -296,5 +341,16 @@ const greeting = "Hello";
       (b) => b.block_type === BlockType.Code
     );
     expect(codeBlock).toBeDefined();
+  });
+
+  it('should not treat regular code blocks as math', async () => {
+    const ast = parseMarkdown('```latex\nE=mc^2\n```');
+    const result = await transformMarkdownToBlocks(ast);
+
+    expect(result.blocks).toHaveLength(1);
+    expect(result.blocks[0]?.block_type).toBe(BlockType.Code);
+    expect(result.blocks[0]?.code?.elements?.[0]?.text_run?.content).toBe(
+      'E=mc^2'
+    );
   });
 });

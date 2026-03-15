@@ -5,6 +5,7 @@ import {
   createCalloutBlock,
   createCodeBlock,
   createDividerBlock,
+  createEquationElement,
   createHeadingBlock,
   createImageBlock,
   createOrderedBlock,
@@ -28,6 +29,18 @@ describe('Block Builders', () => {
       const element = createTextElement('Bold', { bold: true });
       expect(element.text_run?.content).toBe('Bold');
       expect(element.text_run?.text_element_style?.bold).toBe(true);
+    });
+  });
+
+  describe('createEquationElement', () => {
+    it('should create an equation element with content', () => {
+      const element = createEquationElement('E=mc^2');
+      expect(element.equation?.content).toBe('E=mc^2');
+    });
+
+    it('should create an equation element with style', () => {
+      const element = createEquationElement('a+b', { bold: true });
+      expect(element.equation?.text_element_style?.bold).toBe(true);
     });
   });
 

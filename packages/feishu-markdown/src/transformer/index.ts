@@ -13,11 +13,13 @@ import type {
   RootContentMap,
   Table,
 } from 'mdast';
+import type { InlineMath, Math as MathNode } from 'mdast-util-math';
 
 import {
   createBulletBlock,
   createCodeBlock,
   createDividerBlock,
+  createEquationElement,
   createHeadingBlock,
   createImageBlock,
   createOrderedBlock,
@@ -160,6 +162,7 @@ const nodeHandlers: NodeHandlers = {
   heading: handleHeading,
   list: handleList,
   listItem: handleListItem,
+  math: handleMath,
   code: handleCode,
   blockquote: handleBlockquote,
   thematicBreak: handleThematicBreak,
@@ -328,6 +331,18 @@ async function handleCode(
 
   const language = mapCodeLanguage(lang);
   const block = createCodeBlock(codeNode.value, language);
+  addBlock(block, context, parentBlockId);
+}
+
+/**
+ * 处理块级公式
+ */
+async function handleMath(
+  mathNode: MathNode,
+  context: TransformContext,
+  parentBlockId: string | null
+): Promise<void> {
+  const block = createTextBlock([createEquationElement(mathNode.value)]);
   addBlock(block, context, parentBlockId);
 }
 
@@ -603,6 +618,12 @@ function extractTextElements(
         const codeNode = node;
         const style = buildTextStyle({ ...styleContext, inlineCode: true });
         elements.push(createTextElement(codeNode.value, style));
+        break;
+      }
+      case 'inlineMath': {
+        const mathNode = node as InlineMath;
+        const style = buildTextStyle(styleContext);
+        elements.push(createEquationElement(mathNode.value, style));
         break;
       }
       case 'link': {

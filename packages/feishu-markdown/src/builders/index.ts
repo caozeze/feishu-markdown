@@ -25,6 +25,21 @@ export function createTextElement(
 }
 
 /**
+ * 创建公式元素
+ */
+export function createEquationElement(
+  content: string,
+  style?: TextElementStyle
+): TextElement {
+  return {
+    equation: {
+      content,
+      text_element_style: style,
+    },
+  };
+}
+
+/**
  * 创建文本块数据
  */
 export function createTextBlockData(

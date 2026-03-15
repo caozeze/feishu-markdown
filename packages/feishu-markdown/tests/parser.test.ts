@@ -86,6 +86,25 @@ describe('parseMarkdown', () => {
     expect(paragraph.children?.length).toBeGreaterThan(1);
   });
 
+  it('should parse inline math', () => {
+    const result = parseMarkdown('Before $a+b$ after');
+    expect(result.children).toHaveLength(1);
+    const paragraph = result.children[0] as {
+      children?: { type?: string; value?: string }[];
+    };
+    const inlineMath = paragraph.children?.find((c) => c.type === 'inlineMath');
+    expect(inlineMath).toBeDefined();
+    expect(inlineMath?.value).toBe('a+b');
+  });
+
+  it('should parse block math', () => {
+    const result = parseMarkdown('$$\na+b\n$$');
+    expect(result.children).toHaveLength(1);
+    expect(result.children[0]?.type).toBe('math');
+    const math = result.children[0] as { value?: string };
+    expect(math.value).toBe('a+b');
+  });
+
   it('should parse links', () => {
     const result = parseMarkdown('[Link](https://example.com)');
     expect(result.children).toHaveLength(1);

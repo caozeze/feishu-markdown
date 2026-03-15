@@ -1,7 +1,9 @@
 import type { Root } from 'mdast';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
+import { mathFromMarkdown } from 'mdast-util-math';
 import { gfm } from 'micromark-extension-gfm';
+import { math } from 'micromark-extension-math';
 
 import { ParseError } from '@/errors';
 
@@ -11,8 +13,8 @@ import { ParseError } from '@/errors';
 export function parseMarkdown(markdown: string): Root {
   try {
     return fromMarkdown(markdown, {
-      extensions: [gfm()],
-      mdastExtensions: [gfmFromMarkdown()],
+      extensions: [gfm(), math()],
+      mdastExtensions: [gfmFromMarkdown(), mathFromMarkdown()],
     });
   } catch (error) {
     throw new ParseError(
