@@ -16,7 +16,7 @@ import {
   createTextElement,
   createTodoBlock,
 } from '@/builders/index';
-import { BlockType, CodeLanguage } from '@/types/feishu';
+import { Align, BlockType, CodeLanguage } from '@/types/feishu';
 
 describe('Block Builders', () => {
   describe('createTextElement', () => {
@@ -63,6 +63,14 @@ describe('Block Builders', () => {
       const elements = [createTextElement('Test')];
       const block = createTextBlock(elements);
       expect(block.children).toEqual([]);
+    });
+
+    it('should create a text block with style', () => {
+      const elements = [createEquationElement('E=mc^2')];
+      const block = createTextBlock(elements, undefined, {
+        align: Align.Center,
+      });
+      expect(block.text?.style?.align).toBe(Align.Center);
     });
   });
 

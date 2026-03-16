@@ -57,7 +57,8 @@ export function createTextBlockData(
  */
 export function createTextBlock(
   elements: TextElement[],
-  blockId?: string
+  blockId?: string,
+  style?: TextBlockData['style']
 ): FeishuBlock {
   // Ensure elements is not empty, otherwise Feishu API will return invalid param
   const finalElements =
@@ -66,7 +67,7 @@ export function createTextBlock(
   return {
     block_id: blockId ?? generateBlockId(),
     block_type: BlockType.Text,
-    text: createTextBlockData(finalElements),
+    text: createTextBlockData(finalElements, style),
     children: [],
   };
 }
