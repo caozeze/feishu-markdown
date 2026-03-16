@@ -22,7 +22,16 @@ export interface BufferImageSource {
   fileName: string;
 }
 
-export type ImageSource = UrlImageSource | PathImageSource | BufferImageSource;
+export interface TokenImageSource {
+  type: 'token';
+  token: string;
+}
+
+export type ImageSource =
+  | UrlImageSource
+  | PathImageSource
+  | BufferImageSource
+  | TokenImageSource;
 
 export interface ImageReference {
   source: ImageSource;
@@ -89,6 +98,9 @@ export async function loadImage(
         throw new UploadError('Image download is disabled', source.url);
       }
       return downloadImage(source.url);
+
+    case 'token':
+      throw new UploadError('Token-based images do not require loading');
 
     default:
       throw new UploadError('Unknown image source type');

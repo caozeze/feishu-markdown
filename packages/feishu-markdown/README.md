@@ -118,7 +118,7 @@ async convert(markdown: string, options?: ConvertOptions): Promise<ConvertResult
 | `markdown`               | `string`         | ✓    | Markdown 内容                 |
 | `options.title`          | `string`         | -    | 文档标题                      |
 | `options.folderToken`    | `string`         | -    | 目标文件夹 token              |
-| `options.batchSize`      | `number`         | -    | 批量创建大小，默认 `50`       |
+| `options.batchSize`      | `number`         | -    | 批量创建大小，默认自动按 API 上限拆分 |
 | `options.mermaid`        | `MermaidOptions` | -    | Mermaid 渲染选项              |
 | `options.downloadImages` | `boolean`        | -    | 是否下载外部图片，默认 `true` |
 | `options.imageBaseDir`   | `string`         | -    | 本地图片基础目录              |
@@ -138,10 +138,52 @@ interface ConvertResult {
 仅解析 Markdown，不上传。用于预览或调试。
 
 ```typescript
-async parse(markdown: string, options?: ConvertOptions): Promise<{
-  blocks: DescendantBlock[];
-  rootChildrenIds: string[];
-}>
+async parse(markdown: string, options?: ConvertOptions): Promise<DescendantBlock[]>
+```
+
+#### `getDocumentInfo(documentIdOrUrl)`
+
+读取 docx 文档的元信息。
+
+```typescript
+async getDocumentInfo(documentIdOrUrl: string): Promise<DocumentInfoResult>
+```
+
+#### `getDocumentBlocks(documentIdOrUrl, options)`
+
+读取文档块结构，默认返回完整递归块树。
+
+```typescript
+async getDocumentBlocks(
+  documentIdOrUrl: string,
+  options?: {
+    blockId?: string;
+    recursive?: boolean;
+    pageSize?: number;
+  }
+): Promise<GetDocumentBlocksResult>
+```
+
+#### `exportMarkdown(documentIdOrUrl)`
+
+将 docx 文档导出为 Markdown。
+
+```typescript
+async exportMarkdown(documentIdOrUrl: string): Promise<ExportMarkdownResult>
+```
+
+#### `exportMarkdownToFile(documentIdOrUrl, filePath, options)`
+
+将 docx 文档导出为本地 Markdown 文件，并把图片下载到同目录下的 assets 文件夹中。
+
+```typescript
+async exportMarkdownToFile(
+  documentIdOrUrl: string,
+  filePath: string,
+  options?: {
+    assetDirName?: string;
+  }
+): Promise<ExportMarkdownToFileResult>
 ```
 
 ### Mermaid 选项

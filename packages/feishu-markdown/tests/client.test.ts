@@ -184,4 +184,85 @@ describe('FeishuClient', () => {
     expect(mockPost).not.toHaveBeenCalled();
     expect(mockAxiosInstance.request).not.toHaveBeenCalled();
   });
+
+  it('should fetch document info', async () => {
+    const client = new FeishuClient({
+      appId: 'appId',
+      appSecret: 'appSecret',
+    });
+
+    mockPost.mockResolvedValueOnce({
+      data: {
+        code: 0,
+        tenant_access_token: 'token',
+        expire: 7200,
+      },
+    });
+
+    mockAxiosInstance.request.mockResolvedValueOnce({
+      data: {
+        code: 0,
+        msg: 'success',
+        data: {
+          document: {
+            document_id: 'doc123',
+            revision_id: 7,
+            title: 'Doc Title',
+          },
+        },
+      },
+    });
+
+    const result = await client.getDocument('doc123');
+
+    expect(result).toEqual({
+      document: {
+        document_id: 'doc123',
+        revision_id: 7,
+        title: 'Doc Title',
+      },
+    });
+    expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'GET',
+        url: '/open-apis/docx/v1/documents/doc123',
+      })
+    );
+  });
+
+  it('should batch delete child blocks by index range', async () => {
+    const client = new FeishuClient({
+      appId: 'appId',
+      appSecret: 'appSecret',
+    });
+
+    mockPost.mockResolvedValueOnce({
+      data: {
+        code: 0,
+        tenant_access_token: 'token',
+        expire: 7200,
+      },
+    });
+
+    mockAxiosInstance.request.mockResolvedValueOnce({
+      data: {
+        code: 0,
+        msg: 'success',
+        data: null,
+      },
+    });
+
+    await client.deleteChildBlocks('doc123', 'parent456', 0, 10);
+
+    expect(mockAxiosInstance.request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: 'DELETE',
+        url: '/open-apis/docx/v1/documents/doc123/blocks/parent456/children/batch_delete',
+        data: {
+          start_index: 0,
+          end_index: 10,
+        },
+      })
+    );
+  });
 });

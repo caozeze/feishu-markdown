@@ -372,6 +372,17 @@ export interface CreateDocumentResponse {
 }
 
 /**
+ * 读取文档响应
+ */
+export interface GetDocumentResponse {
+  document: {
+    document_id: string;
+    revision_id: number;
+    title: string;
+  };
+}
+
+/**
  * 创建块请求
  */
 export interface CreateBlocksRequest {

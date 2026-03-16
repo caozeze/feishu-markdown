@@ -13,7 +13,7 @@ import type {
   RootContentMap,
   Table,
 } from 'mdast';
-import type { Math as MathNode } from 'mdast-util-math';
+import type { InlineMath, Math as MathNode } from 'mdast-util-math';
 
 import {
   createBulletBlock,
@@ -71,6 +71,9 @@ interface StyleContext {
   inlineCode?: boolean;
   link?: string;
 }
+
+const FEISHU_IMAGE_COMMENT_PATTERN =
+  /^<!--\s*feishu-image\s+token:\s*([^\s]+)\s*-->$/;
 
 /**
  * 将 Markdown AST 转换为飞书块结构
@@ -263,13 +266,11 @@ async function handleListItem(
   for (const child of itemNode.children) {
     if (child.type === 'paragraph' && elements.length === 0) {
       elements = extractTextElements(child.children);
-    } else if (child.type === 'list') {
+      continue;
       // 嵌套列表，稍后处理
-      childrenToProcess.push(child);
-    } else if (child.type === 'paragraph') {
-      // 额外的段落，作为子块处理
-      childrenToProcess.push(child);
     }
+    childrenToProcess.push(child as RootContent);
+      // 额外的段落，作为子块处理
   }
 
   if (elements.length === 0) {
@@ -296,13 +297,16 @@ async function handleTaskListItem(
   parentBlockId: string | null
 ): Promise<void> {
   let elements: TextElement[] = [];
+  const childrenToProcess: RootContent[] = [];
 
   // 提取第一个段落的内容
   for (const child of node.children) {
-    if (child.type === 'paragraph') {
+    if (child.type === 'paragraph' && elements.length === 0) {
       elements = extractTextElements(child.children);
-      break;
+      continue;
     }
+
+    childrenToProcess.push(child as RootContent);
   }
 
   if (elements.length === 0) {
@@ -311,6 +315,10 @@ async function handleTaskListItem(
 
   const block = createTodoBlock(elements, node.checked ?? false);
   addBlock(block, context, parentBlockId);
+
+  for (const child of childrenToProcess) {
+    await visitNode(child, context, block.block_id ?? null);
+  }
 }
 
 /**
@@ -442,7 +450,7 @@ async function handleTable(
       if (colIndex < columnSize) {
         const elements = extractTextElements(cell.children);
         const len = elements.reduce(
-          (acc, el) => acc + (el.text_run?.content.length ?? 0),
+          (acc, el) => acc + estimateTextElementWidth(el),
           0
         );
         colMaxLengths[colIndex] = Math.max(len, colMaxLengths[colIndex] ?? 0);
@@ -565,6 +573,23 @@ async function handleHtml(
   parentBlockId: string | null
 ): Promise<void> {
   // 将 HTML 作为纯文本处理
+  const imageMatch = FEISHU_IMAGE_COMMENT_PATTERN.exec(htmlNode.value.trim());
+  if (imageMatch) {
+    const token = imageMatch[1];
+    if (token) {
+      const blockId = generateBlockId();
+      const block = createImageBlock(undefined, undefined, undefined, blockId);
+      addBlock(block, context, parentBlockId);
+      context.imageBuffers.set(blockId, {
+        source: {
+          type: 'token',
+          token,
+        },
+      });
+      return;
+    }
+  }
+
   const elements = [createTextElement(htmlNode.value)];
   const block = createTextBlock(elements);
   addBlock(block, context, parentBlockId);
@@ -621,7 +646,7 @@ function extractTextElements(
         break;
       }
       case 'inlineMath': {
-        const mathNode = node;
+        const mathNode: InlineMath = node;
         const style = buildTextStyle(styleContext);
         elements.push(createEquationElement(mathNode.value, style));
         break;
@@ -695,4 +720,24 @@ function buildTextStyle(context: StyleContext): TextElementStyle | undefined {
   }
 
   return hasStyle ? style : undefined;
+}
+
+function estimateTextElementWidth(element: TextElement): number {
+  if (element.text_run?.content) {
+    return element.text_run.content.length;
+  }
+
+  if (element.equation?.content) {
+    return element.equation.content.length;
+  }
+
+  if (element.mention_doc?.url) {
+    return element.mention_doc.url.length;
+  }
+
+  if (element.mention_user?.user_id) {
+    return element.mention_user.user_id.length;
+  }
+
+  return 1;
 }

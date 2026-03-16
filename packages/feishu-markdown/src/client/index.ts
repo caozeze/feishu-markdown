@@ -23,6 +23,7 @@ import type {
   CreateDocumentResponse,
   FeishuAPIResponse,
   FeishuBlock,
+  GetDocumentResponse,
   TenantAccessTokenResponse,
 } from '@/types/feishu';
 import type { FeishuMarkdownOptions } from '@/types/options';
@@ -268,6 +269,15 @@ export class FeishuClient {
   }
 
   /**
+   * 读取文档元信息
+   */
+  async getDocument(documentId: string): Promise<GetDocumentResponse> {
+    const method = 'GET';
+    const url = `/open-apis/docx/v1/documents/${documentId}`;
+    return this.request<GetDocumentResponse>(method, url);
+  }
+
+  /**
    * 通过手机号获取用户 ID
    */
   async getOpenIdByMobile(mobile: string): Promise<string | null> {
@@ -432,6 +442,40 @@ export class FeishuClient {
   }
 
   /**
+   * 下载已存在的媒体资源
+   */
+  async downloadMedia(mediaId: string): Promise<PreparedImage> {
+    const token = await this.getAccessToken();
+    const method = 'GET';
+    const url = `/open-apis/drive/v1/medias/${mediaId}/download`;
+
+    try {
+      const response = await this.http.get<ArrayBuffer>(url, {
+        baseURL: this.baseUrl,
+        responseType: 'arraybuffer',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const responseHeaders = response.headers as Record<
+        string,
+        string | string[] | undefined
+      >;
+      const contentTypeHeader = responseHeaders['content-type'];
+      const contentType =
+        typeof contentTypeHeader === 'string' ? contentTypeHeader : undefined;
+      const extension = this.getExtensionFromContentType(contentType);
+      return {
+        buffer: Buffer.from(response.data),
+        fileName: `${mediaId}${extension}`,
+      };
+    } catch (error) {
+      this.handleAxiosError(method, url, error);
+    }
+  }
+
+  /**
    * 创建图片块并上传图片
    */
   async createImageBlock(
@@ -513,6 +557,41 @@ export class FeishuClient {
     const method = 'DELETE';
     const url = `/open-apis/docx/v1/documents/${documentId}/blocks/${blockId}`;
     await this.request<null>(method, url);
+  }
+
+  /**
+   * 批量删除父块下指定区间的子块
+   */
+  async deleteChildBlocks(
+    documentId: string,
+    parentBlockId: string,
+    startIndex: number,
+    endIndex: number
+  ): Promise<void> {
+    const method = 'DELETE';
+    const url = `/open-apis/docx/v1/documents/${documentId}/blocks/${parentBlockId}/children/batch_delete`;
+    await this.request<null>(method, url, {
+      start_index: startIndex,
+      end_index: endIndex,
+    });
+  }
+
+  private getExtensionFromContentType(contentType: string | undefined): string {
+    const typeMap: Record<string, string> = {
+      'image/png': '.png',
+      'image/jpeg': '.jpg',
+      'image/jpg': '.jpg',
+      'image/gif': '.gif',
+      'image/webp': '.webp',
+      'image/svg+xml': '.svg',
+      'image/bmp': '.bmp',
+    };
+
+    if (!contentType) {
+      return '.png';
+    }
+
+    return typeMap[contentType.split(';')[0]?.trim() ?? ''] ?? '.png';
   }
 
   /**

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import { FeishuDataError } from '@/errors';
 import { CodeLanguage } from '@/types/feishu';
+import { normalizeDocumentId } from '@/utils/document';
 import { generateBlockId } from '@/utils/id';
 import { isMermaidLanguage, mapCodeLanguage } from '@/utils/language';
 import { delay, retryWithBackoff } from '@/utils/retry';
@@ -131,6 +133,32 @@ describe('Utils', () => {
         )
       ).rejects.toThrow('non-retryable');
       expect(attempts).toBe(1);
+    });
+  });
+
+  describe('normalizeDocumentId', () => {
+    it('should accept raw document IDs', () => {
+      expect(normalizeDocumentId('If2odwQ7io4k99xaLbwcpxXcnzc')).toBe(
+        'If2odwQ7io4k99xaLbwcpxXcnzc'
+      );
+    });
+
+    it('should extract document IDs from docx URLs', () => {
+      expect(
+        normalizeDocumentId('https://feishu.cn/docx/If2odwQ7io4k99xaLbwcpxXcnzc')
+      ).toBe('If2odwQ7io4k99xaLbwcpxXcnzc');
+    });
+
+    it('should reject wiki URLs', () => {
+      expect(() =>
+        normalizeDocumentId('https://feishu.cn/wiki/If2odwQ7io4k99xaLbwcpxXcnzc')
+      ).toThrow(FeishuDataError);
+    });
+
+    it('should reject invalid locators', () => {
+      expect(() => normalizeDocumentId('not a locator')).toThrow(
+        FeishuDataError
+      );
     });
   });
 });

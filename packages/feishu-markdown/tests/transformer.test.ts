@@ -85,6 +85,26 @@ describe('transformMarkdownToBlocks', () => {
     expect(parentBlock).toBeDefined();
   });
 
+  it('should preserve block children under list items', async () => {
+    const ast = parseMarkdown('- Parent\n\n  $$\n  x+y\n  $$\n\n  > quoted');
+    const result = await transformMarkdownToBlocks(ast);
+
+    const parentBlock = result.blocks.find(
+      (b) => b.block_type === BlockType.Bullet
+    );
+    const mathBlock = result.blocks.find(
+      (b) =>
+        b.block_type === BlockType.Text &&
+        b.text?.elements?.[0]?.equation?.content === 'x+y'
+    );
+    const quoteBlock = result.blocks.find(
+      (b) => b.block_type === BlockType.QuoteContainer
+    );
+
+    expect(parentBlock?.children).toContain(mathBlock?.block_id);
+    expect(parentBlock?.children).toContain(quoteBlock?.block_id);
+  });
+
   it('should transform code block', async () => {
     const ast = parseMarkdown('```javascript\nconst x = 1;\n```');
     const result = await transformMarkdownToBlocks(ast);
@@ -135,12 +155,43 @@ describe('transformMarkdownToBlocks', () => {
     expect(tableBlock?.table?.property?.column_size).toBe(2);
   });
 
+  it('should estimate formula-heavy table cells wider than the minimum width', async () => {
+    const markdown = `| Formula |
+| --- |
+| $\\frac{a^2+b^2}{c^2}$ |`;
+    const ast = parseMarkdown(markdown);
+    const result = await transformMarkdownToBlocks(ast);
+
+    const tableBlock = result.blocks.find(
+      (b) => b.block_type === BlockType.Table
+    );
+
+    expect(tableBlock?.table?.property?.column_width?.[0]).toBeGreaterThan(50);
+  });
+
   it('should transform image', async () => {
     const ast = parseMarkdown('![Alt](https://example.com/image.png)');
     const result = await transformMarkdownToBlocks(ast);
 
     // Image should be stored in imageBuffers for later processing
     expect(result.imageBuffers.size).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should transform feishu image token comments back into image blocks', async () => {
+    const ast = parseMarkdown('<!-- feishu-image token: img_token_123 -->');
+    const result = await transformMarkdownToBlocks(ast);
+
+    expect(result.blocks).toHaveLength(1);
+    expect(result.blocks[0]?.block_type).toBe(BlockType.Image);
+
+    const blockId = result.blocks[0]?.block_id;
+    expect(blockId).toBeDefined();
+    expect(result.imageBuffers.get(blockId ?? '')).toEqual({
+      source: {
+        type: 'token',
+        token: 'img_token_123',
+      },
+    });
   });
 
   it('should transform task list', async () => {
