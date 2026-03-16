@@ -40,6 +40,7 @@ import type {
   TextElementStyle,
 } from '@/types/feishu';
 import type { ConvertOptions, MermaidOptions } from '@/types/options';
+import { Align } from '@/types/feishu';
 import {
   generateBlockId,
   isMermaidLanguage,
@@ -350,7 +351,11 @@ async function handleMath(
   context: TransformContext,
   parentBlockId: string | null
 ): Promise<void> {
-  const block = createTextBlock([createEquationElement(mathNode.value)]);
+  const block = createTextBlock(
+    [createEquationElement(mathNode.value)],
+    undefined,
+    { align: Align.Center }
+  );
   addBlock(block, context, parentBlockId);
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { parseMarkdown } from '@/parser/index';
 import { transformMarkdownToBlocks } from '@/transformer/index';
-import { BlockType, CodeLanguage } from '@/types/feishu';
+import { Align, BlockType, CodeLanguage } from '@/types/feishu';
 
 describe('transformMarkdownToBlocks', () => {
   it('should transform simple paragraph', async () => {
@@ -271,6 +271,7 @@ describe('transformMarkdownToBlocks', () => {
     expect(result.blocks[0]?.text?.elements?.[0]?.equation?.content).toBe(
       '\\frac{a}{b}'
     );
+    expect(result.blocks[0]?.text?.style?.align).toBe(Align.Center);
   });
 
   it('should preserve multiple inline equations in order', async () => {
