@@ -13,7 +13,7 @@ import type {
   RootContentMap,
   Table,
 } from 'mdast';
-import type { InlineMath, Math as MathNode } from 'mdast-util-math';
+import type { Math as MathNode } from 'mdast-util-math';
 
 import {
   createBulletBlock,
@@ -621,7 +621,7 @@ function extractTextElements(
         break;
       }
       case 'inlineMath': {
-        const mathNode = node as InlineMath;
+        const mathNode = node;
         const style = buildTextStyle(styleContext);
         elements.push(createEquationElement(mathNode.value, style));
         break;
